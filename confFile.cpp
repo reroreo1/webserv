@@ -1,0 +1,303 @@
+#include "confFile.hpp"
+
+ConfParse::ConfParse(std::vector<Server *> &ss) : srvs(ss){
+	tableInit(delTable, (char[3][2]){";", "{", "}"}, 3);
+	tableInit(specToken, (char[TOKENSIZE][30]){"client_max_bodysize", "listen", "server_name", "root",
+				"index", "error_page", "location", "autoindex", "autoindex_format", "return",
+				"accepted_methods", "directory_file"}, TOKENSIZE);
+	tableInit(accMethd, (char[3][10]){"GET", "POST", "DELETE"}, 3);
+	tableInit(autoIndForm, (char[4][10]){"html", "xml", "json" , "jsonp"}, 4);
+ }
+
+int ConfParse::specDel(char c){
+	if (c == ';')
+		return 0;
+	if (c == '{')
+		return 1;
+	if (c == '}')
+		return 2;
+	return 3;
+}
+
+void ConfParse::worker(){
+	std::string::iterator it = buff.begin();
+	std::string::iterator tmp = it;
+
+	while (it != buff.end()) {
+		if (*it == '\t'){
+			buff.erase(it);
+			continue ;
+		}
+		if (specDel(*it) != 3){
+			if (it != tmp){
+				tokens.push_back(std::string(tmp, it));
+			}
+			tokens.push_back(delTable[specDel(*it)]);
+			tmp = it + 1;
+		}
+		if (*it == ' '){
+			if (*(it + 1) != ' ' && specDel(*(it + 1)) == 3){
+				tokens.push_back(std::string(tmp, it));
+				tmp = it + 1;
+			}
+			else{
+				buff.erase(it);
+				continue ;
+			}
+		}
+		it++;
+	}
+}
+
+void ConfParse::errorParse(std::string error){
+	cerr << error;
+	throw error;
+}
+
+void ConfParse::listenParse(std::vector<std::string>::iterator &it, Server *sok){
+	it++;
+	try {
+		sok->info.port = atoi((*(it)).c_str());
+	} catch (std::exception &e){
+		cout << e.what();
+	};
+	it++;
+	if (*(it) != ";"){
+		errorParse("listen line\n");
+	}
+}
+
+void ConfParse::clientMaxParse(std::vector<std::string>::iterator &it, Server *sok){
+	
+	it++;
+	try {
+		sok->info.clientBodySize = atoi((*(it)).c_str());
+	} catch (exception &e){
+		cout << e.what();
+	};
+	it++;
+	if (*(it) != ";"){
+		errorParse("client Body size line\n");
+	}
+}
+
+void ConfParse::indexParse(std::vector<std::string>::iterator &it, Server *sok){
+	
+	it++;
+	while (*it != ";" && it != tokens.end()){
+		sok->info.index.push_back(*it);
+		it++;
+	}
+	if (*(it) != ";")
+		errorParse("index line\n");
+}
+
+
+void ConfParse::indexParse(std::vector<std::string>::iterator &it, locations &loc){
+	
+	it++;
+	while (*it != ";" && it != tokens.end()){
+		loc.index.push_back(*it);
+		it++;
+	}
+	if (*(it) != ";")
+		errorParse("index location line\n");
+}
+
+void ConfParse::servNameParse(std::vector<std::string>::iterator &it, Server *sok){
+	
+	it++;
+	while (*it != ";" && it != tokens.end()){
+		sok->info.servName.push_back(*it);
+		it++;
+	}
+	if (*(it) != ";")
+		errorParse("server name line\n");
+}
+
+void ConfParse::errpParse(std::vector<std::string>::iterator &it, Server *sok){
+	it++;
+	std::vector<int> st;
+	std::string pa;
+	std::vector<std::string>::iterator tmp = it;
+	tmp++;
+	while (*tmp != ";" && tmp != tokens.end()){
+		try {
+			st.push_back(atoi((*it).c_str()));
+		}
+		catch (std::exception &e){
+			std::cout << e.what();
+		}
+		it++;
+		tmp++;
+	}
+	pa = *it;
+	for (std::vector<int>::iterator iit = st.begin(); iit != st.end(); iit++)
+		sok->info.errPgs.insert(std::pair<int, std::string>(*iit, pa));
+	it++;
+	if (*(it) != ";")
+		errorParse("errorPage line\n");
+}
+
+void ConfParse::autoinParse(std::vector<std::string>::iterator &it, locations &loc){
+	it++;
+	loc.autoIndex = true;
+	if (*it != ";")
+		errorParse("location autoindex");
+}
+
+void ConfParse::autoinforParse(std::vector<std::string>::iterator &it, locations &loc){
+	it++;
+	if (indInTable(*it, autoIndForm, 4) == -1)
+		errorParse("in autoInForm");
+	loc.autoIndex_form = *it;
+	it++;
+	if (*it != ";")
+		errorParse("location autoindex");
+}
+
+void ConfParse::rootParse(std::vector<std::string>::iterator &it, locations &loc){
+	it++;
+	loc.root = *(it);
+	it++;
+	if (*(it) != ";")
+		errorParse("listen line\n");
+}
+
+void ConfParse::redParse(std::vector<std::string>::iterator &it, locations &loc){
+	it++;
+	try {
+		loc.redirString.first = atoi((*(it)).c_str());
+	} catch (exception &e){
+		cout << e.what();
+	};
+	it++;
+	loc.redirString.second = *it;
+	it++;
+	if (*(it) != ";"){
+		errorParse("redirection line\n");
+	}
+}
+
+void ConfParse::accMethParse(std::vector<std::string>::iterator &it, locations &loc){
+	it++;
+	while (*it != ";" && it != tokens.end()){
+		if (indInTable(*it, accMethd, 3) == -1)
+			errorParse("server-location-accepted_method: invalid method\n");
+		loc.acceptedMeth.push_back(*it);
+		it++;
+	}
+	if (*(it) != ";")
+		errorParse("server-location-accepted_method: missing ';'\n");
+	
+}
+
+void ConfParse::dirFileParse(std::vector<std::string>::iterator &it, locations &loc){
+	it++;
+	loc.dirFile = *(it);
+	it++;
+	if (*(it) != ";")
+		errorParse("listen line\n");
+}
+
+void ConfParse::locParse(std::vector<std::string>::iterator &it, Server *sok){
+	locations	loc;
+	int		locseted[10];
+	memset(locseted, 0, sizeof(locseted));
+
+	it++;
+	loc.locationUri = *it;
+	it++;
+	if (*(it) != "{")
+		errorParse("location line\n");
+	it++;
+	while (*it != "}" && it != tokens.end()){
+		if (indInTable(*it, specToken, TOKENSIZE) == autoin)
+			(locseted[autoin]) ? errorParse("duplicate token\n") : autoinParse(it, loc);
+		else if (indInTable(*it, specToken, TOKENSIZE) == autoinfor)
+			(locseted[autoinfor]) ? errorParse("duplicate token\n") : autoinforParse(it, loc);
+		else if (indInTable(*it, specToken, TOKENSIZE) == root)
+			(locseted[autoinfor]) ? errorParse("duplicate token\n") : rootParse(it, loc);
+		else if (indInTable(*it, specToken, TOKENSIZE) == red)
+			(locseted[red]) ? errorParse("duplicate token\n") : redParse(it, loc);
+		else if (indInTable(*it, specToken, TOKENSIZE) == accmet)
+			(locseted[red]) ? errorParse("duplicate token\n") : accMethParse(it, loc);
+		else if (indInTable(*it, specToken, TOKENSIZE) == dirfile)
+			(locseted[red]) ? errorParse("duplicate token\n") : dirFileParse(it, loc);
+		else if (indInTable(*it, specToken, TOKENSIZE) == index)
+			(locseted[red]) ? errorParse("duplicate token\n") : indexParse(it, loc);
+		
+		else
+			errorParse("Invalid token : " + *it);
+		it++;
+	}
+	if (*it != "}")
+		errorParse("location Parse\n");
+	sok->info.locs.push_back(loc);
+}
+
+void ConfParse::parseserv(std::vector<std::string>::iterator &it){
+	static	int	num;
+	Server		*sok = new Server();
+	int			seted[10]; // work on duplicate token
+
+	memset(seted, 0, sizeof(seted));
+	it++;
+	if (*it != "{")
+		errorParse("{\n");
+	it++;
+	while (*it != "}" && it != tokens.end()){
+		if (indInTable(*it, specToken, TOKENSIZE) == liste)
+			(seted[liste]) ? errorParse("duplicate token\n") : listenParse(it, sok);
+		else if (indInTable(*it, specToken, TOKENSIZE) == cmbs)
+			(seted[cmbs]) ? errorParse("duplicate token\n") : clientMaxParse(it, sok);
+		else if (indInTable(*it, specToken, TOKENSIZE) == index)
+			(seted[index]) ? errorParse("duplicate token\n") : indexParse(it, sok);
+		else if (indInTable(*it, specToken, TOKENSIZE) == servname)
+			(seted[servname]) ? errorParse("duplicate token\n") : servNameParse(it, sok);
+		else if (indInTable(*it, specToken, TOKENSIZE) == errp)
+			errpParse(it, sok);
+		else if (indInTable(*it, specToken, TOKENSIZE) == loc)
+			locParse(it, sok);
+		else 
+			errorParse("Invalid token :" + *it);
+		it++;
+	}
+	if (*it != "}")
+		errorParse("loc }}\n");
+	std::cerr << "-------------" << num++ << "-------------" << '\n'; 
+	sok->info.display();
+	srvs.push_back(sok);
+}
+
+void ConfParse::parser(){
+	for (std::vector<std::string>::iterator it = tokens.begin(); it != tokens.end() && *it != "}"; it++){
+		if (*it != "server")
+			errorParse("serve\n");
+		parseserv(it);
+	}
+}
+
+void ConfParse::tokenize(std::ifstream &conf){
+
+	while (getline(conf, buff, '\n')){
+		if (buff != "")
+			worker();
+		buff.clear();
+	}
+	// for (auto str : tokens){
+	// 	cerr << str << "|\n";
+	// }
+}
+
+void ConfParse::confParse(std::string confName){
+	
+	conf.open(confName);
+	if (conf.fail() == true){
+		cerr << "Error openning the file.\n";
+		errorParse("Some thing\n");
+	}
+	tokenize(conf);
+	conf.close();
+	parser();
+}

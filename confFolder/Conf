@@ -1,0 +1,26 @@
+server {
+	listen 5555;
+	server_name localhost localhost.com;
+	error_page 503 504 /custem_50x.html;
+	client_max_bodysize 1024;
+	location / {
+		root helperFile;
+		accepted_methods GET POST DELETE;
+	}
+}
+
+server {
+	listen 5551;
+	server_name www.linuxhelp2.com linuxhelp2.com;
+	error_page 503 /Sustem_50x.html;
+	client_max_bodysize 2024;
+	location /test/ {
+		index hello.html bye.xml;
+		root /path1;
+		autoindex ;
+		autoindex_format xml;
+		return 301 https:name$request_uri;
+		accepted_methods DELETE;
+		directory_file /something;
+	}
+}
