@@ -6,7 +6,7 @@
 /*   By: rezzahra <rezzahra@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/27 21:37:00 by rezzahra          #+#    #+#             */
-/*   Updated: 2022/12/02 02:27:17 by rezzahra         ###   ########.fr       */
+/*   Updated: 2022/12/06 12:19:26 by rezzahra         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,8 +109,8 @@ void BadRequest1(Request rhs,Response &lhs){
 	if (it != rhs.hd.hd.end()){
 		method = it->second.substr(0,it->second.find(' '));
 		if (method == "Post" && rhs.hd.hd.find("Content-Length") == rhs.hd.hd.end() && rhs.hd.hd.find("Transfer-Encoding") == rhs.hd.hd.end()){
-			lhs.Code.code = BadRequest;
-			lhs.Code.reason = "Bad Request";
+			lhs.Code.code = LengthRequired;
+			lhs.Code.reason = "Length Required";
 			lhs.Code.HTTPv = "HTTP/1.1";
 			lhs.filled = true;
 		}

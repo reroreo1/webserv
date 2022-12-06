@@ -51,6 +51,7 @@ int Worker::handle_response(int clnt) {
 		std::cerr << "--------------------\n";
 		Server &server = getServer(ss, clnt_serv.at(clnt), getHost(request));
 		Response &p = res.handleRes(clnt, request, server);
+		p.mime = fillMap();
 		// Response p = Responsehandler(request,server);
 		p.display();
 		std::cerr << "--------------------\n";

@@ -47,6 +47,7 @@
 	struct Response{
 		int clnt;
 		bool filled;
+		std::map<std::string,std::string> &mime;
 		URI uri;
 		status Code;
 		std::string Location;
@@ -90,18 +91,18 @@
 	void Responsehandler(Response *rhs, Request &request,Server& lhs);
 	std::map<std::string,std::string> fillMap(void);
 	std::string listDirectory(const char *path,std::string url);
-struct ResponseHandler{
-	std::map<int, Response> respool;
-	// std::vector<Server *> &s;
+	struct ResponseHandler{
+		std::map<int, Response> respool;
+		// std::vector<Server *> &s;
 
-	ResponseHandler();
-	~ResponseHandler();
-	Response &handleRes(int clnt, Request &req, Server &ser);
-	Response &getResponse(int clnt);
-	void eraseRes(int cnlt);
-	void clearRes();
+		ResponseHandler();
+		~ResponseHandler();
+		Response &handleRes(int clnt, Request &req, Server &ser);
+		Response &getResponse(int clnt);
+		void eraseRes(int cnlt);
+		void clearRes();
 
-};
+	};
 
 // void fileSender(Response &res);
 

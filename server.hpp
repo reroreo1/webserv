@@ -12,7 +12,6 @@ struct locations {
 	std::string					root;
 	std::string					dirFile;
 	std::string 				locationUri;
-
 	locations();
 };
 struct serverInfo {
