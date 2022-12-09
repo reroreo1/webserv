@@ -6,7 +6,7 @@
 /*   By: rezzahra <rezzahra@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/27 21:37:00 by rezzahra          #+#    #+#             */
-/*   Updated: 2022/12/06 12:19:26 by rezzahra         ###   ########.fr       */
+/*   Updated: 2022/12/08 17:29:01 by rezzahra         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -291,8 +291,13 @@ void Responsehandler(Response *rhs, Request &request,Server& lhs){
 }
 
 // -----------responseHandler----------------------
-Response::Response(int cl): fd(-1), stat(HEADER), bufin(0), byteFromBody(0){
+Response::Response(int cl){
 	clnt = cl;
+	fd = -1;
+	stat = HEADER;
+	bufin = 0;
+	byteFromBody = 0;
+	mime = fillMap();
 }
 
 void Response::fileSender(){

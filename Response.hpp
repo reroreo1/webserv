@@ -54,6 +54,7 @@
 		std::string contentType;
 		std::string contentLength;
 		std::string body;
+		bool isBodyFile;
 		void display();
 		//-----added----
 		enum {HEADER, BODY, FINISHED} stat;
@@ -91,6 +92,8 @@
 	void Responsehandler(Response *rhs, Request &request,Server& lhs);
 	std::map<std::string,std::string> fillMap(void);
 	std::string listDirectory(const char *path,std::string url);
+	std::string unts(std::uint16_t n);
+	std::string& makeHeader(Response &rhs,Request &lhs);
 	struct ResponseHandler{
 		std::map<int, Response> respool;
 		// std::vector<Server *> &s;
