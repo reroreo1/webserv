@@ -1,8 +1,6 @@
 #ifndef WORKER_HPP
 #define WORKER_HPP
 #include "globalheader.hpp"
-#include "confFile.hpp"
-#include "Request.hpp"
 #include "Response.hpp"
 using namespace std;
 

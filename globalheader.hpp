@@ -1,6 +1,8 @@
 #ifndef GLOBALHEADER_HPP
 #define GLOBALHEADER_HPP
 
+#define BUFSIZE 1024
+
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
@@ -18,7 +20,16 @@
 #include <exception>
 #include <algorithm>
 #include <signal.h>
-#define BUFSIZE 1024
+#include <sys/stat.h>
+#include <sstream>
+#include <dirent.h>
+#include <sys/types.h>
+// #include "SocketS.hpp"
+// #include "server.hpp"
+// #include "confFile.hpp"
+// #include "Request.hpp"
+// #include "Response.hpp"
+
 ssize_t ft_writeFds(int fd, char *buf, size_t size, const char *info, fd_set *fdset);
 int ftOpen(std::string name);
 ssize_t ft_write(int fd, char *buf, size_t size, const char *info);
@@ -31,6 +42,8 @@ char *lookFor(char *haystack, const char *needle, ssize_t needLen, ssize_t len);
 void bWrite(char *buff, ssize_t size);
 char *lookForLast(char *haystack, const char *needle, ssize_t needLen, ssize_t len);
 ssize_t hexToi(const char *str);
+bool fileExists(std::string &name);
+size_t fd_size(int fd);
 template <typename T, typename U>
 bool keyInMap(std::map<T, U> m, T key){
 	for (typename std::map<T, U>::iterator it = m.begin(); it != m.end(); it++){

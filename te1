@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document</title>
+</head>
+<body>
+<h1>Index Of ./helperFile</h1>
+<ul>
+<li><a href="http://hello/.">.</a><p>1190 bytes </p></li>
+<li><a href="http://hello/..">..</a><p>816 bytes </p></li>
+<li><a href="http://hello/h.html">h.html</a><p>816 bytes </p></li>
+<li><a href="http://hello/header">header</a><p>816 bytes </p></li>
+<li><a href="http://hello/index.html">index.html</a><p>816 bytes </p></li>
+</ul>
+</body>
+</html>

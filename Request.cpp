@@ -1,7 +1,6 @@
 #include "Request.hpp"
 #define nameT "fileT"
 
-// Request handler
 RequestHandler::RequestHandler(){
 	
 }
@@ -63,8 +62,7 @@ void Request::parseheader(char *buf, int size){
 
 void Request::hundleChunkedBody(char *&buf, int &size){
 	char *pos;
-	
-	// tmpfd.first = ftOpen(std::string(nameT));
+	int tes;
 	memmove(tmpbuf + tmpBufLen, buf, size);
 	tmpBufLen += size;
 	if (fase == FINISHED)
@@ -76,37 +74,41 @@ void Request::hundleChunkedBody(char *&buf, int &size){
 				return ;
 			};
 			std::string chuncklen(tmpbuf, pos);
-			chunkSize = hexToi(chuncklen.c_str());
 			std::cerr << "{s{ " << chuncklen << "}}"; // debug
+			chunkSize = hexToi(chuncklen.c_str());
 			std::cerr << "\n\nchunk size = " << chunkSize << "\n\n";// getting the right chunk size
 			if (!chunkSize){
 				fase = FINISHED;
 				close(tmpfd.first);
 				tmpfd.second = false;
-				std::cerr << "{{ " << chunkSize << "}}"; // debug
+				std::cerr << "{{ new chunk" << chunkSize << "}}"; // debug
 				tmpBufLen = 0;
 				return ;
 			}
 			tmpBufLen -=  (pos - tmpbuf) + 2;// threat buffer
 			memmove(tmpbuf, pos + 2, tmpBufLen);
 		}
-		if (chunkSize <= BUFSIZE && (pos = lookFor(tmpbuf, "\r\n", 2, tmpBufLen))){
-			ft_writeFds(tmpfd.first, tmpbuf, pos - tmpbuf, "error : writing chuncked", writefds);
-			chunkSize -= (pos - tmpbuf);
+		if (chunkSize <= BUFSIZ && (pos = lookFor(tmpbuf, "\r\n", 2, tmpBufLen))){
+			ft_writeFds(tmpfd.first, tmpbuf, chunkSize, "error : writing chuncked", writefds);
 			newChunk = true;
-			tmpBufLen -= (pos - tmpbuf) + 2;
-			std::cerr << "\n\n";
-			bWrite(tmpbuf, (pos - tmpbuf) + 2);
-			memmove(tmpbuf, pos + 2, tmpBufLen);
-			std::cerr << "--------------------------";
-			bWrite(tmpbuf, tmpBufLen);
+			tmpBufLen -= chunkSize + 2;
+			memmove(tmpbuf, tmpbuf + chunkSize + 2, tmpBufLen);
+			chunkSize = 0;
+			// std::cerr << "-----------"<< chunkSize <<"---------------";
 			continue ;
 		}
-		ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen - 3, "error : writing chuncked", writefds);
-		chunkSize -= (tmpBufLen - 3);
-		memmove(tmpbuf, tmpbuf + tmpBufLen - 3, 3);
-		tmpBufLen = 3;
-		std::cerr << "{{ " << chunkSize << "}}"; // debug
+		if (chunkSize <= BUFSIZ){
+			ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen - 3, "error : writing chuncked", writefds);
+			chunkSize -= (tmpBufLen - 3);
+			memmove(tmpbuf, tmpbuf + tmpBufLen - 3, 3);
+			tmpBufLen = 3;
+		}
+		else {
+			ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen, "error : writing chuncked", writefds);
+			chunkSize -= (tmpBufLen);
+			tmpBufLen = 0;
+		}
+		// std::cerr << "{{ " << chunkSize << "}}"; // debug
 		newChunk = false;
 		break ;
 	}
@@ -120,7 +122,6 @@ void Request::bodyFase(char *&buf, int &bufSize){
 		hundleChunkedBody(buf, bufSize);
 		return ;
 	}
-	// tmpfd.first = ftOpen(std::string(nameT));
 	memmove(tmpbuf + tmpBufLen, buf, bufSize);
 	// tmpBufLen = 0;
 	tmpBufLen += bufSize;
@@ -152,16 +153,38 @@ int	Request::checkHeader(){
 	return (0);
 }
 
+static string getUrl(std::string fl){
+	std::string::iterator it1 = find(fl.begin(), fl.end(), ' ');
+	std::string::iterator it2 = find(it1 + 1, fl.end(), ' ');
+	return (std::string(it1, it2));
+}
+
+int Request::checkingEn(int bufSize){
+	if (tmpBufLen + bufSize >= 2048){
+		fase = ETL;
+		return 1;
+	}
+	if (getHeader("firstline") != "NF"){
+		std::string url = getUrl(getHeader("firstline"));
+		std::cerr << "from checking En" << url << std::endl; 
+		if (url.length() >= 2048){
+			fase = ETL;
+			return 1;
+		}
+	}
+	return 0;
+}
+
 void Request::headerFase(char *&buf, int &bufSize){
 	char *pos;
 	int extra;
-	char headerBuff[BUFSIZE * 2];
+	char headerBuff[BUFSIZE * 3];
 
 	memcpy(headerBuff, tmpbuf, tmpBufLen);
 	if ((pos = lookFor(buf, "\r\n\r\n", 4, bufSize))){
 		memcpy(&headerBuff[tmpBufLen], buf, pos - buf + 2);
 		parseheader(headerBuff, pos - buf + 2 + tmpBufLen);
-		if (checkHeader())
+		if (checkHeader() || checkingEn(bufSize))
 			return ;
 		extra = 4;
 	} 
@@ -173,10 +196,18 @@ void Request::headerFase(char *&buf, int &bufSize){
 	else {
 
 	}
-	tmpBufLen = bufSize - (pos - buf + extra);
-	bufSize = 0;
-	memmove(tmpbuf, pos + extra, tmpBufLen);
-	printMap(hd.hd);
+	// checking fields length;
+	if (pos){
+		tmpBufLen = bufSize - (pos - buf + extra);
+		bufSize = 0;
+		memmove(tmpbuf, pos + extra, tmpBufLen);
+		printMap(hd.hd);
+		return ;
+	}
+	if (checkingEn(bufSize))
+		return ;
+	tmpBufLen += bufSize;
+	memmove(tmpbuf, headerBuff, tmpBufLen);
 }
 
 void Request::add(char *buf, int bufSize){
@@ -186,4 +217,6 @@ void Request::add(char *buf, int bufSize){
 		headerFase(buf, bufSize);
 	if (fase == BODY)
 		bodyFase(buf, bufSize);
+	if (fase == ETL)
+		std::cerr << "||ETL||";
 }

@@ -1,6 +1,6 @@
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
-// #include "globalheader.hpp"
+#include "globalheader.hpp"
 #include "server.hpp"
 // #include "Response.hpp"
 
@@ -13,7 +13,7 @@ struct Rheader {
 };
 
 struct Request {
-	enum		{HEADER, BODY, FINISHED};
+	enum		{HEADER, BODY, FINISHED, ETL};
 	Rheader		hd;
 	fd_set		*writefds;
 	std::pair<int, bool> tmpfd;
@@ -33,6 +33,7 @@ struct Request {
 	void parseheader(char *buf, int size);
 	// void setSets(fd_set *r, fd_set *w);
 	int	 checkHeader();
+	int checkingEn(int);
 	void hundleChunkedBody(char *&, int&);
 	void process();
 };

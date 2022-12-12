@@ -28,6 +28,7 @@ void serverInfo::display(){
 
 	std::cerr << "locations :";
 	for (std::vector<locations>::iterator it = locs.begin(); it != locs.end(); it++){
+		std::cerr << it->locationUri << std::endl;
 		std::cerr << it->root << std::endl;
 		std::cerr << (it->autoIndex ? "on" : "off") << std::endl;
 		std::cerr << it->autoIndex_form << std::endl;

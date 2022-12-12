@@ -1,14 +1,22 @@
 server {
 	listen 5555;
+	
 	server_name localhost localhost.com;
 	error_page 503 504 /custem_50x.html;
 	client_max_bodysize 1024;
-	location / {
-		root helperFile;
+	location /hello {
+		root /helperFile;
+		index index.html papa.json dada.xml;
+		autoindex ;
+		accepted_methods GET POST DELETE;
+	}
+	location /{
+		root /helperFile;
+		index index.html;
+		autoindex ;
 		accepted_methods GET POST DELETE;
 	}
 }
-
 server {
 	listen 5551;
 	server_name www.linuxhelp2.com linuxhelp2.com;
@@ -19,7 +27,7 @@ server {
 		root /path1;
 		autoindex ;
 		autoindex_format xml;
-		return 301 https:name$request_uri;
+		return 301 https:localhost:5555/hello/error.html;
 		accepted_methods DELETE;
 		directory_file /something;
 	}

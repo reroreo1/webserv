@@ -1,6 +1,6 @@
 #include "globalheader.hpp"
 
-static bool fileExists(std::string &name){
+bool fileExists(std::string &name){
 	bool ret;
 	std::ifstream f(name.c_str());
 	ret = f.good();
@@ -72,7 +72,7 @@ int ft_accept(int socket, struct sockaddr *address, socklen_t*address_len){
 int ft_open(const char *path, int flag){
 	int rt;
 	if ((rt = open(path, flag)) == -1){
-		perror("From accept: ");
+		perror("from open: ");
 	};
 	return (rt);
 }
@@ -121,8 +121,9 @@ ssize_t hexToi(const char *str){
 	char base[]  = {"0123456789abcdef"};
 	for (int i = 0; str[i]; i++){
 		if (indexInStr(base, str[i]) == -1){
+			bWrite((char *)"||||||||||||||||||", 19);
 			bWrite((char *) str, strlen(str));
-			std::cerr << "somthing in hexToi\n";
+			std::cerr << "somthing in hexToi index= \n";
 			exit(1);
 		}
 		res = res * 16 + indexInStr(base, str[i]);
@@ -130,6 +131,12 @@ ssize_t hexToi(const char *str){
 	return res;
 }
 
+size_t fd_size(int fd){
+	struct stat st;
+
+	fstat(fd, &st);
+	return (st.st_size);
+};
 
 // int main(){
 // 	std::map<int, std::string> m;

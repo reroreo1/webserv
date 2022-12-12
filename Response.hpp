@@ -1,10 +1,12 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
+#include "globalheader.hpp"
 #include "Request.hpp"
-#include <sys/stat.h>
-#include <sstream>
-#include <dirent.h>
-#include <sys/types.h>
+
+// #include <sys/stat.h>
+// #include <sstream>
+// #include <dirent.h>
+// #include <sys/types.h>
 //characters allowed in url
 //0 1 2 3 4 5 6 7 8 9
 //a b c d e f g h I j k l m n o p q r s t u v w x y z
@@ -36,6 +38,10 @@
 		std::string path;
 		std::string query;
 		std::string resource;
+
+		inline void displayUri(){
+			dprintf(2, "|%s|, |%s|, |%s|", path.c_str(), query.c_str() , resource.c_str());
+		};
 	};
 
 	struct status {
@@ -45,25 +51,29 @@
 	};
 
 	struct Response{
+		std::map<std::string, std::string> &mime;
 		int clnt;
 		bool filled;
-		std::map<std::string,std::string> &mime;
+		bool isBodyFile;
+		// std::map<std::string,std::string> &mime;
 		URI uri;
 		status Code;
 		std::string Location;
 		std::string contentType;
 		std::string contentLength;
 		std::string body;
-		bool isBodyFile;
+		std::string con;
 		void display();
 		//-----added----
 		enum {HEADER, BODY, FINISHED} stat;
-		char resBuf[BUFSIZE];
+		char resBuf[BUFSIZ];
 		int bufin;
 		int fd;
+		size_t fileSizeRemain;
 		int byteFromBody;
-		int remain;
-		Response (int);
+		char remain[BUFSIZ];
+		int remSize;
+		Response (int, std::map<std::string, std::string> &m);
 		void fileSender ();
 	};
 /*---------------------GETTERS---------------------------------*/
@@ -76,7 +86,7 @@
 	std::string getMethod(Request &rhs);
 	std::string getHost(Request &rhs);
 /*---------------------CHECKS----------------------------------*/
-	bool fileExists(std::string &Url);
+	// bool fileExists(std::string &Url);
 	bool directoryExists(std::string &Url);
 	bool checkMethod(Request &rhs);
 	bool UriTooLong(std::string lhs);
@@ -91,13 +101,14 @@
 	bool isMethodAllowed(Request& rhs,Server& lhs,locations& loc);
 	void Responsehandler(Response *rhs, Request &request,Server& lhs);
 	std::map<std::string,std::string> fillMap(void);
-	std::string listDirectory(const char *path,std::string url);
-	std::string unts(std::uint16_t n);
-	std::string& makeHeader(Response &rhs,Request &lhs);
+	std::string listDirectory(const char *path,std::string url,Request &rhs);
+	void startserving(Request &rhs,Server& server,Response* pons);
+	std::string makeHeader(Response &rhs);
+	void generateErrorHtml(Response &rhs);
 	struct ResponseHandler{
+		std::map<std::string, std::string> mime;
 		std::map<int, Response> respool;
 		// std::vector<Server *> &s;
-
 		ResponseHandler();
 		~ResponseHandler();
 		Response &handleRes(int clnt, Request &req, Server &ser);
@@ -106,7 +117,5 @@
 		void clearRes();
 
 	};
-
-// void fileSender(Response &res);
 
 #endif

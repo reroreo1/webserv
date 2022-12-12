@@ -11,7 +11,7 @@ selectInfo::~selectInfo(){
 };
 
 void selectInfo::selectoo(){
-	timeout.tv_sec = 2;
+	timeout.tv_sec = 1;
 	timeout.tv_usec = 0;
 	cpy_rfds = readfds;
 	cpy_wfds = writefds;
@@ -32,55 +32,63 @@ Worker::Worker(vector<Server *> &serv_sock, size_t bs): ss(serv_sock){
 }
 
 int Worker::handle_request(char *buff, int bufLen, int i, int &fd_max) {
-	if (fd_max < i)
-		fd_max = i;
 	req.handleReq(i, buff, bufLen, &sel.writefds);
-	if (req.getRequest(i).fase == 2)
+	if (req.getRequest(i).fase == 2){
 		FD_SET(i, &sel.writefds);
+		if (fd_max < i)
+			fd_max = i;
+	}
 	return 0;
 }
 
 
 
 int Worker::handle_response(int clnt) {
+	
 	Request &request = req.getRequest(clnt);
-	// char buf[buff_size];
-
+	char buf[buff_size];
 	// std::cout << "hello hello" << getHost(request) << std::endl;
 	if (request.fase == 2){
 		std::cerr << "--------------------\n";
 		Server &server = getServer(ss, clnt_serv.at(clnt), getHost(request));
 		Response &p = res.handleRes(clnt, request, server);
-		p.mime = fillMap();
-		// Response p = Responsehandler(request,server);
 		p.display();
+		p.uri.displayUri();
+
 		std::cerr << "--------------------\n";
-		// while(1);
-	// }
-	// if (request.fase == 2){
-		int hd = ft_open("helperFile/header", O_RDONLY);
-		p.fd = ft_open("helperFile/h.html", O_RDONLY); // here 1
-		p.bufin = ft_read(hd, p.resBuf, 158, "r1");
-		memmove(p.resBuf + p.bufin , "\r\n\r\n", 4);
-		p.bufin += 4;
-		// int retb = ft_read(ht, buf + reth + 4, buff_size, "r2");
 		p.fileSender();
-		// ft_send(clnt, buf, reth + 8 + retb,"s4");
-		// close(ht);
-		close(hd);
-		FD_CLR(clnt, &sel.writefds);
-		std::cerr << " || " << request.getHeader(std::string("Connection"));  
-		if (request.getHeader(std::string("Connection")) == std::string("close")){	
-			FD_CLR(clnt, &sel.readfds);
-			req.eraseReq(clnt);
+		
+		// test
+		// {
+		// 	int hd = ft_open("./helperFile/header", O_RDONLY);
+		// 	int bd = ft_open("./helperFile/h.html", O_RDONLY);
+		// 	int ret;
+		// 	ret = ft_read(hd, buf, BUFSIZ, "ftread");
+		// 	memmove(buf + ret,(char *) "\r\n\r\n",  4); ret += 4;
+		// 	ret += ft_read(bd, buf + ret, BUFSIZ - ret, "ftread2");
+		// 	ft_send(clnt, buf, ret, "here");
+		// 	// int t2 = ft_open("testingFiles/t2", O_WRONLY | O_TRUNC);
+		// 	// std::cerr << "ret from test2:" << ret;
+		// 	// ft_write(t2, buf, ret, "filesSender.");
+		// 	// close(t2);
+		// 	close(hd);
+		// 	close(bd);
+		// }
+		// exit(1);
+		if (true){
+			FD_CLR(clnt, &sel.writefds);
 			res.eraseRes(clnt);
-			close(clnt);
-			clnt_serv.erase(clnt);
+			if (request.getHeader(std::string("Connection")) == std::string("close")){
+				req.eraseReq(clnt);
+				FD_CLR(clnt, &sel.readfds);
+				clnt_serv.erase(clnt);
+				close(clnt);
+				std::cerr << "closing connection from res.\n";
+			}
 		}
 	}
 	return 0;
 }
-
 
 void Worker::start() {
 	int		clnt_sock;
@@ -108,7 +116,7 @@ void Worker::start() {
 			clnt_serv.clear();
 			req.clearReq();
 			res.clearRes();
-			dprintf(2, "timeout\n");
+			// dprintf(2, "timeout\n");
 			continue ;
 		}
 		// cout << "{{" << fd_num << "}}";
@@ -132,14 +140,15 @@ void Worker::start() {
 				else { // read message from client!
 					if ((str_len = ft_recv(i, buf, buff_size - 1, "recv :")) == -1)
 						; // read request add protection
+					// dprintf(2, "|||||||||||||strlen = %d||||||", str_len);
 					if (str_len <= 0){ // close request!
 						FD_CLR(i, &sel.readfds);
 						if(FD_ISSET(i, &sel.cpy_wfds))
 							FD_CLR(i, &sel.writefds);
 						close(i);
-						clnt_serv.erase(i);
 						req.eraseReq(i);
 						res.eraseRes(i);
+						clnt_serv.erase(i);
 						printf("close client %d \n", i);
 					}
 					else {
