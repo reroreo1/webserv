@@ -24,6 +24,7 @@
 #include <sstream>
 #include <dirent.h>
 #include <sys/types.h>
+#include <ftw.h>
 // #include "SocketS.hpp"
 // #include "server.hpp"
 // #include "confFile.hpp"

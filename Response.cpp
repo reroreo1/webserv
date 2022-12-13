@@ -6,7 +6,7 @@
 /*   By: rezzahra <rezzahra@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/27 21:37:00 by rezzahra          #+#    #+#             */
-/*   Updated: 2022/12/11 01:52:13 by rezzahra         ###   ########.fr       */
+/*   Updated: 2022/12/12 23:35:37 by rezzahra         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -276,7 +276,6 @@ void Responsehandler(Response *rhs, Request &request,Server& lhs){
 	rhs->uri.query = (url.find("?") != string::npos) ? url.substr(url.find("?"),url.npos) : "";
 	rhs->uri.resource = url.substr(url.find_last_of("/") ,url.find("?") - url.find_last_of("/"));
 	if (!matchLocUri(request,lhs)){
-		std::cerr << "frome 1" << "\n";
 		rhs->Code.code = NotFound;
 		rhs->Code.reason = "Not Found";
 		rhs->Code.HTTPv = "HTTP/1.1";
@@ -286,7 +285,6 @@ void Responsehandler(Response *rhs, Request &request,Server& lhs){
 	}
 	if (getRedirection(request,lhs)->redirString.first != -1)
 	{
-		std::cerr << "frome 2" << "\n";
 		rhs->Code.code = MovedPermanently;
 		rhs->Code.reason = "Moved Permanently";
 		rhs->Code.HTTPv = "HTTP/1.1";
@@ -294,7 +292,6 @@ void Responsehandler(Response *rhs, Request &request,Server& lhs){
 		return ;
 	}
 	if (!isMethodAllowed(request,lhs,getRedirection(request,lhs))){
-		std::cerr << "frome 3" << "\n";
 		rhs->Code.code = MethodNotAllowed;
 		rhs->Code.reason = "Method Not Allowed";
 		generateErrorHtml(*rhs);

@@ -105,6 +105,7 @@
 	void startserving(Request &rhs,Server& server,Response* pons);
 	std::string makeHeader(Response &rhs);
 	void generateErrorHtml(Response &rhs);
+	void deleteMethod(Response& pons, std::string resource);
 	struct ResponseHandler{
 		std::map<std::string, std::string> mime;
 		std::map<int, Response> respool;

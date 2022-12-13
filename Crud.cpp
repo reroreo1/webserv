@@ -67,7 +67,6 @@ void startserving(Request &rhs,Server& server,Response* pons){
 	it--;
 	if (getMethod(rhs) == "GET"){
 		locations loc = getLoc(pons->uri.path,server.info);
-		// std::cerr << "|||" << lol << "|||";
 		if (!fileExists(lol) && !directoryExists(lol)){
 			pons->Code.code = NotFound;
 			pons->Code.reason = "Not Found";
@@ -157,6 +156,6 @@ void startserving(Request &rhs,Server& server,Response* pons){
 		//create the file in the normal post and the transfer encoding chucked and ? CGI ?
 	}
 	else if (getMethod(rhs) == "DELETE"){
-		
+		deleteMethod(*pons,lol);
 	}
 }
