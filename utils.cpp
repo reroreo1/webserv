@@ -8,14 +8,12 @@ bool fileExists(std::string &name){
 	return ret;
 }
 
-ssize_t ft_writeFds(int fd, char *buf, size_t size, const char *info, fd_set *fdset){
+ssize_t ft_writeFds(int fd, char *buf, size_t size, const char *info){
 	ssize_t rt;
-	FD_SET(fd, fdset);
 	if ((rt = write(fd, buf, size)) == -1){
 		perror(info);
 	};
 	return (rt);
-	FD_SET(fd, fdset);
 }
 
 int ftOpen(std::string name){
@@ -100,11 +98,11 @@ char	*lookForLast(char *haystack, const char *needle, ssize_t needLen, ssize_t l
 void bWrite(char *buff, ssize_t size){
 	for (int i = 0; i < size; i++){
 		if (buff[i] >= 32 && buff[i] <= 126)
-			printf("%c", buff[i]);
+			dprintf(2, "%c", buff[i]);
 		else if (buff[i] == 13)
-			printf("|r|");
+			dprintf(2, "|r|");
 		else
-			printf("|%d|", buff[i]);
+			dprintf(2, "|%d|", buff[i]);
 	}
 }
 

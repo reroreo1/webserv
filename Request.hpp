@@ -15,7 +15,6 @@ struct Rheader {
 struct Request {
 	enum		{HEADER, BODY, FINISHED, ETL};
 	Rheader		hd;
-	fd_set		*writefds;
 	std::pair<int, bool> tmpfd;
 	bool		newChunk;
 	ssize_t		chunkSize;
@@ -24,7 +23,7 @@ struct Request {
 	int			fase;
 	ssize_t		contLengh;
 
-	Request(fd_set *w);
+	Request();
 	~Request();
 	std::string getHeader(std::string);
 	void add(char *buf, int bufSize);
@@ -43,8 +42,9 @@ struct RequestHandler{
 	// std::vector<Server *> &s;
 
 	RequestHandler();
-	void handleReq(int clnt, char *buf, int bufSize, fd_set *w);
+	void handleReq(int clnt, char *buf, int bufSize);
 	Request &getRequest(int clnt);
+	void refReq(int);
 	void eraseReq(int cnlt);
 	void clearReq();
 };

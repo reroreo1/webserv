@@ -101,15 +101,18 @@
 	bool isMethodAllowed(Request& rhs,Server& lhs,locations& loc);
 	void Responsehandler(Response *rhs, Request &request,Server& lhs);
 	std::map<std::string,std::string> fillMap(void);
-	std::string listDirectory(const char *path,std::string url,Request &rhs);
+	std::string listDirectory(const char *path,std::string url,Request &rhs,std::string resource);
+	std::string itoss(size_t size);
 	void startserving(Request &rhs,Server& server,Response* pons);
-	std::string makeHeader(Response &rhs);
+	void makeHeader(Response &rhs);
 	void generateErrorHtml(Response &rhs);
 	void deleteMethod(Response& pons, std::string resource);
+	std::string getHTTPv(Request &rhs);
 	struct ResponseHandler{
 		std::map<std::string, std::string> mime;
 		std::map<int, Response> respool;
 		// std::vector<Server *> &s;
+
 		ResponseHandler();
 		~ResponseHandler();
 		Response &handleRes(int clnt, Request &req, Server &ser);

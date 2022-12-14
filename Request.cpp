@@ -5,10 +5,15 @@ RequestHandler::RequestHandler(){
 	
 }
 
-void RequestHandler::handleReq(int clnt, char *buf, int bufSize, fd_set *w){
+void RequestHandler::handleReq(int clnt, char *buf, int bufSize){
 	if (!keyInMap(reqpool, clnt))
-		reqpool.insert(std::pair<int, Request>(clnt, Request(w)));
+		reqpool.insert(std::pair<int, Request>(clnt, Request()));
 	reqpool.at(clnt).add(buf, bufSize);
+}
+
+void RequestHandler::refReq(int clnt){
+	eraseReq(clnt);
+	reqpool.insert(std::pair<int, Request>(clnt, Request()));
 }
 
 void RequestHandler::eraseReq(int clnt){
@@ -38,8 +43,7 @@ void Rheader::addToHeader(char *b, char *e){
 }
 
 //request
-Request::Request(fd_set *w): fase(HEADER), tmpBufLen(0), newChunk(true) ,chunkSize(0){
-	writefds = w;
+Request::Request(): fase(HEADER), tmpBufLen(0), newChunk(true) ,chunkSize(0){
 	tmpfd.first = ftOpen(std::string(nameT));
 	tmpfd.second = true;
 }
@@ -89,7 +93,7 @@ void Request::hundleChunkedBody(char *&buf, int &size){
 			memmove(tmpbuf, pos + 2, tmpBufLen);
 		}
 		if (chunkSize <= BUFSIZ && (pos = lookFor(tmpbuf, "\r\n", 2, tmpBufLen))){
-			ft_writeFds(tmpfd.first, tmpbuf, chunkSize, "error : writing chuncked", writefds);
+			ft_writeFds(tmpfd.first, tmpbuf, chunkSize, "error : writing chuncked");
 			newChunk = true;
 			tmpBufLen -= chunkSize + 2;
 			memmove(tmpbuf, tmpbuf + chunkSize + 2, tmpBufLen);
@@ -98,13 +102,13 @@ void Request::hundleChunkedBody(char *&buf, int &size){
 			continue ;
 		}
 		if (chunkSize <= BUFSIZ){
-			ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen - 3, "error : writing chuncked", writefds);
+			ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen - 3, "error : writing chuncked");
 			chunkSize -= (tmpBufLen - 3);
 			memmove(tmpbuf, tmpbuf + tmpBufLen - 3, 3);
 			tmpBufLen = 3;
 		}
 		else {
-			ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen, "error : writing chuncked", writefds);
+			ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen, "error : writing chuncked");
 			chunkSize -= (tmpBufLen);
 			tmpBufLen = 0;
 		}
@@ -126,7 +130,7 @@ void Request::bodyFase(char *&buf, int &bufSize){
 	// tmpBufLen = 0;
 	tmpBufLen += bufSize;
 	bufSize = 0;
-	ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen, "error : writing chuncked", writefds);
+	ft_writeFds(tmpfd.first, tmpbuf, tmpBufLen, "error : writing chuncked");
 	bodyLen += tmpBufLen;// check content len
 	tmpBufLen = 0;
 	if (bodyLen == atoi(getHeader("Content-Length").c_str())){

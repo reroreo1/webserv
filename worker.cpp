@@ -10,12 +10,24 @@ selectInfo::~selectInfo(){
 
 };
 
+void Worker::cleaning(){ // implement l fikra
+	for (int so = ss.back()->serv_sock + 1; so < (sel.fd_max + 1) / 2; so++){
+		if (FD_ISSET(so, &sel.readfds))	
+			FD_CLR(so, &sel.readfds);
+		if (FD_ISSET(so, &sel.readfds))
+			FD_CLR(so, &sel.writefds);
+		close(so);
+		clnt_serv.erase(so);
+		req.eraseReq(so);
+		res.eraseRes(so);
+	}
+}
+
 void selectInfo::selectoo(){
-	timeout.tv_sec = 1;
+	timeout.tv_sec = 5;
 	timeout.tv_usec = 0;
 	cpy_rfds = readfds;
 	cpy_wfds = writefds;
-
 	ret = select(fd_max + 1, &cpy_rfds, &cpy_wfds, 0, &timeout);
 }
 
@@ -26,66 +38,45 @@ Worker::Worker() {
 Worker::Worker(vector<Server *> &serv_sock, size_t bs): ss(serv_sock){
 	buff_size = bs;
 	for (vector<Server *>::iterator sock = ss.begin(); sock != ss.end(); sock++){
-		// cerr << "sock->serv_sock :: " << sock->serv_sock;
 		FD_SET((*sock)->serv_sock, &sel.readfds);
 	}
 }
 
-int Worker::handle_request(char *buff, int bufLen, int i, int &fd_max) {
-	req.handleReq(i, buff, bufLen, &sel.writefds);
-	if (req.getRequest(i).fase == 2){
-		FD_SET(i, &sel.writefds);
-		if (fd_max < i)
-			fd_max = i;
+static int ft_memcmp(char *s1, char *s2, size_t size){
+	int ret ;
+	if ((ret = memcmp(s1, s2, size))){
+		dprintf(2, "{s1=");bWrite(s1, size);dprintf(2, "}");
+		dprintf(2, "{s2=");bWrite(s2, size);dprintf(2, "}");
+	}
+	return (ret);
+}
+
+int Worker::handle_response(int clnt) {
+	Request &request = req.getRequest(clnt);
+	char buf[buff_size];
+
+	Server &server = getServer(ss, clnt_serv.at(clnt), getHost(request));
+	Response &p = res.handleRes(clnt, request, server);
+	p.fileSender();
+	if (p.stat == 2){
+		FD_CLR(clnt, &sel.writefds);
+		if (request.getHeader(std::string("Connection")) == std::string("close") || request.getHeader(std::string("Connection")) == "NF"){
+			clnt_serv.erase(clnt);
+			close(clnt);
+		}
+		else
+			FD_SET(clnt, &sel.readfds);
+		res.eraseRes(clnt);
+		req.eraseReq(clnt);
 	}
 	return 0;
 }
 
-
-
-int Worker::handle_response(int clnt) {
-	
-	Request &request = req.getRequest(clnt);
-	char buf[buff_size];
-	// std::cout << "hello hello" << getHost(request) << std::endl;
-	if (request.fase == 2){
-		std::cerr << "--------------------\n";
-		Server &server = getServer(ss, clnt_serv.at(clnt), getHost(request));
-		Response &p = res.handleRes(clnt, request, server);
-		p.display();
-		p.uri.displayUri();
-
-		std::cerr << "--------------------\n";
-		p.fileSender();
-		
-		// test
-		// {
-		// 	int hd = ft_open("./helperFile/header", O_RDONLY);
-		// 	int bd = ft_open("./helperFile/h.html", O_RDONLY);
-		// 	int ret;
-		// 	ret = ft_read(hd, buf, BUFSIZ, "ftread");
-		// 	memmove(buf + ret,(char *) "\r\n\r\n",  4); ret += 4;
-		// 	ret += ft_read(bd, buf + ret, BUFSIZ - ret, "ftread2");
-		// 	ft_send(clnt, buf, ret, "here");
-		// 	// int t2 = ft_open("testingFiles/t2", O_WRONLY | O_TRUNC);
-		// 	// std::cerr << "ret from test2:" << ret;
-		// 	// ft_write(t2, buf, ret, "filesSender.");
-		// 	// close(t2);
-		// 	close(hd);
-		// 	close(bd);
-		// }
-		// exit(1);
-		if (true){
-			FD_CLR(clnt, &sel.writefds);
-			res.eraseRes(clnt);
-			if (request.getHeader(std::string("Connection")) == std::string("close")){
-				req.eraseReq(clnt);
-				FD_CLR(clnt, &sel.readfds);
-				clnt_serv.erase(clnt);
-				close(clnt);
-				std::cerr << "closing connection from res.\n";
-			}
-		}
+int Worker::handle_request(char *buff, int bufLen, int clnt, int &fd_max) {
+	req.handleReq(clnt, buff, bufLen);
+	if (req.getRequest(clnt).fase == 2){
+		FD_CLR(clnt, &sel.readfds);
+		FD_SET(clnt, &sel.writefds);
 	}
 	return 0;
 }
@@ -96,8 +87,6 @@ void Worker::start() {
 	socklen_t adr_sz;
 	char		buf[buff_size];
 	sel.fd_max = ss.back()->serv_sock;
-	// cerr << ss.back()->serv_sock;
-
 	while (1){
 		sel.selectoo();
 		if (sel.ret == -1){
@@ -105,57 +94,61 @@ void Worker::start() {
 			cerr << "select went wrong.\n";
 			break ;
 		}
-		if (sel.ret == 0) { // close remain sockets and data
-			for (int i = 0; i < sel.fd_max + 1; i++){
-				if (FD_ISSET(i, &sel.readfds) && i > ss.back()->serv_sock){	
-					FD_CLR(i, &sel.readfds);
-					close(i);
+
+		if (sel.ret == 0) {
+			// continue;
+			for (int so = 0; so < sel.fd_max + 1; so++){
+				if (keyInMap(clnt_serv, so)){
+					FD_CLR(so, &sel.readfds);
+					close(so);
 				}
 			}
 			FD_ZERO(&sel.writefds);
 			clnt_serv.clear();
 			req.clearReq();
 			res.clearRes();
-			// dprintf(2, "timeout\n");
 			continue ;
 		}
-		// cout << "{{" << fd_num << "}}";
-		for (int i = 0; i < sel.fd_max + 1; i++) {
-			// cerr << fd_max << "|||||||||" << '\n';
-			if(FD_ISSET(i, &sel.cpy_wfds)){
-				handle_response(i);
-			}
-			if (FD_ISSET(i, &sel.cpy_rfds)){
-				if (i <= ss.back()->serv_sock){ // connection request;
-					adr_sz = sizeof(clnt_adr);
-					clnt_sock = ft_accept(i, (struct sockaddr *) &clnt_adr, &adr_sz);
+		// connection case:
+
+		for (int server = ss.front()->serv_sock;
+			 server <= ss.back()->serv_sock; server++) {
+			if (FD_ISSET(server, &sel.cpy_rfds)){ // connection request;
+				adr_sz = sizeof(clnt_adr);
+				clnt_sock = ft_accept(server, (struct sockaddr *) &clnt_adr, &adr_sz);
+				if (clnt_sock != -1){
+					fcntl(clnt_sock, F_SETFL, O_NONBLOCK);
 					FD_SET(clnt_sock, &sel.readfds);
 					if (sel.fd_max < clnt_sock){
 						sel.fd_max = clnt_sock;
 					}
-					clnt_serv.insert(pair<int, int> (clnt_sock, i));
-					// cerr << "|||||" << clnt_sock << " :: " << i << "|||||" << '\n';
+					clnt_serv.insert(pair<int, int> (clnt_sock, server));
 					printf("connected client: %d \n", clnt_sock);
 				}
-				else { // read message from client!
-					if ((str_len = ft_recv(i, buf, buff_size - 1, "recv :")) == -1)
-						; // read request add protection
-					// dprintf(2, "|||||||||||||strlen = %d||||||", str_len);
-					if (str_len <= 0){ // close request!
-						FD_CLR(i, &sel.readfds);
-						if(FD_ISSET(i, &sel.cpy_wfds))
-							FD_CLR(i, &sel.writefds);
-						close(i);
-						req.eraseReq(i);
-						res.eraseRes(i);
-						clnt_serv.erase(i);
-						printf("close client %d \n", i);
-					}
-					else {
-						handle_request(buf, str_len, i, sel.fd_max);
-					}
-				}
+				// else add case here
 			}
+		}
+		// reading requests
+		std::cout << "serv sock : " << ss.back()->serv_sock << std::endl;
+		for (int clnt = ss.back()->serv_sock + 1; clnt <= sel.fd_max; clnt++) {
+			if (FD_ISSET(clnt, &sel.cpy_rfds)){
+				str_len = ft_recv(clnt, buf, BUFSIZ, "recv :");
+				if (str_len <= 0){ // close request
+					close(clnt);
+					req.eraseReq(clnt);
+					res.eraseRes(clnt);
+					clnt_serv.erase(clnt);
+					printf("close client %d \n", clnt);
+					FD_CLR(clnt, &sel.readfds);
+				}
+				else 
+					handle_request(buf, str_len, clnt, sel.fd_max);
+			}
+		}
+		// sending response
+		for (int clnt = 0; clnt <= sel.fd_max; clnt++){
+			if(FD_ISSET(clnt, &sel.cpy_wfds))
+				handle_response(clnt);
 		}
 	}
 }

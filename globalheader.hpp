@@ -25,13 +25,8 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <ftw.h>
-// #include "SocketS.hpp"
-// #include "server.hpp"
-// #include "confFile.hpp"
-// #include "Request.hpp"
-// #include "Response.hpp"
 
-ssize_t ft_writeFds(int fd, char *buf, size_t size, const char *info, fd_set *fdset);
+ssize_t ft_writeFds(int fd, char *buf, size_t size, const char *info);
 int ftOpen(std::string name);
 ssize_t ft_write(int fd, char *buf, size_t size, const char *info);
 ssize_t ft_read(int fd, char *buf, size_t size, const char *info);

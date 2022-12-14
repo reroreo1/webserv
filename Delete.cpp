@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Delete.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rezzahra <rezzahra@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hkheiri <hkheiri@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/11/06 23:20:53 by rezzahra          #+#    #+#             */
-/*   Updated: 2022/12/12 23:47:55 by rezzahra         ###   ########.fr       */
+/*   Updated: 2022/12/13 03:52:18 by hkheiri          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,6 +66,7 @@ void deleteMethod(Response& pons, std::string resource){
     else if (fileExists(resource)){
         delete1(resource.c_str(),NULL,0,NULL);
         pons.Code.code = Ok;
+		pons.isBodyFile = false;
 		pons.Code.reason = "OK";
 		pons.Code.HTTPv = "HTTP/1.1";
         return ;

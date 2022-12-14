@@ -6,7 +6,7 @@
 /*   By: rezzahra <rezzahra@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/10/27 21:37:00 by rezzahra          #+#    #+#             */
-/*   Updated: 2022/12/12 23:35:37 by rezzahra         ###   ########.fr       */
+/*   Updated: 2022/12/14 16:48:02 by rezzahra         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,40 +17,33 @@
 // 	return f.good();
 // }
 
-std::string listDirectory(const char *path,std::string url, Request &rhs){
+std::string listDirectory(const char *path,std::string url, Request &rhs,std::string resource){
 	std::string index;
-	struct stat buffer;
-	std::stringstream ss;
-	std::string sizet;
-	off_t size;
 	index = "<!DOCTYPE html>\n";
 	index.append("<html lang=\"en\">\n<head>\n");
 	index.append("<meta charset=\"UTF-8\">\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Document</title>\n");
 	index.append("</head>\n<body>\n");
 	index.append("<h1>Index Of ");
-	index.append(std::string(path));
+	index.append(url + resource);
 	index.append("</h1>\n<ul>\n");
 	DIR *dp = opendir(path);
 	if (!dp)
 		return index;
 	struct dirent *dip;
-	dip = readdir(dp);
-	while(dip != NULL){
+	while((dip = readdir(dp)) != NULL){
 		std::string name = std::string(dip->d_name);
-		std::string name1 = url + name;
+		off_t size;
+		struct stat buffer;
 		stat(dip->d_name,&buffer);
 		size = buffer.st_size;
-		ss << size;
-		sizet = ss.str();
-		ss.str("")     ;
 		index.append("<li><a href=\"http://");
 		index.append(rhs.getHeader("Host"));
+		std::string name1 = url + resource + name;
 		index.append(name1);
 		index.append("\">");
 		std::string completer = "</li>\n";
-		completer = name + "</a><p>" + sizet + " bytes </p>"+ completer;
+		completer = name + "</a><p>" + itoss(size) + " bytes </p>"+ completer;
 		index.append(completer);
-		dip = readdir(dp);
 	}
 	index.append("</ul>\n</body>\n</html>");
 	closedir(dp);
@@ -113,6 +106,16 @@ void BadRequest1(Request rhs,Response &lhs){
 			lhs.Code.code = LengthRequired;
 			lhs.Code.reason = "Length Required";
 			lhs.Code.HTTPv = "HTTP/1.1";
+			generateErrorHtml(lhs);
+			lhs.isBodyFile = false;
+			lhs.filled = true;
+		}
+		else if (getHTTPv(rhs) != "HTTP/1.1"){
+			lhs.Code.code = HttpVersionNotSupported;
+			lhs.Code.reason = "Http Version Not Supported";
+			lhs.Code.HTTPv = "HTTP/1.1";
+			generateErrorHtml(lhs);
+			lhs.isBodyFile = false;
 			lhs.filled = true;
 		}
 	}
@@ -140,7 +143,18 @@ std::string getMethod(Request &rhs){
 	}
 	return method;
 }
-
+std::string getHTTPv(Request &rhs){
+	std::map <std::string, std::string>::iterator it;
+	std::string version = "";
+	it = rhs.hd.hd.find("firstline");
+	if (it != rhs.hd.hd.end()){
+		stringstream s(it->second);
+		std::getline(s,version,' ');
+		std::getline(s,version,' ');
+		std::getline(s,version,' ');
+	}
+	return version;
+}
 std::string getHost(Request &rhs){
 	std::map<std::string,std::string>::iterator that = rhs.hd.hd.find("Host");
 	std::cout << that->second.substr(0,that->second.find(':')) << std::endl;
@@ -171,7 +185,6 @@ void BadRequest2(Request rhs,Response &lhs){
 }
 
 void isRequestwellFormed(Response *rhs, Request request,Server& lhs){
-	// Response *rhs = new Response;
 	rhs->filled = false;
 	std::map <std::string, std::string>::iterator it;
 	it = request.hd.hd.find("Transfer-Encoding");
@@ -260,9 +273,15 @@ void Response::display(void){
 	std::cout << Code.code << std::endl;
 	std::cout << Code.HTTPv << std::endl;
 	std::cout << Code.reason << std::endl;
-	std::cout << body << std::endl;
+	if (isBodyFile)
+		std::cout << body << std::endl;
 	std::cout << contentLength << std::endl;
 	std::cout << contentType << std::endl;
+}
+void UriInfo(Response &rhs,Server &lhs,std::string url){
+	rhs.uri.path = biggestMatch(url,lhs.info.locs);
+	rhs.uri.query = (url.find("?") != string::npos) ? url.substr(url.find("?"),url.npos) : "";
+	rhs.uri.resource = (rhs.uri.query == "") ?   url.erase(0,rhs.uri.path.length()) : (url.erase(0,rhs.uri.path.length())).erase(url.find("?"),rhs.uri.query.length());
 }
 
 void Responsehandler(Response *rhs, Request &request,Server& lhs){
@@ -272,9 +291,7 @@ void Responsehandler(Response *rhs, Request &request,Server& lhs){
 	isRequestwellFormed(rhs, request,lhs);
 	if (rhs->filled)
 		return ;
-	rhs->uri.path = biggestMatch(url,lhs.info.locs);
-	rhs->uri.query = (url.find("?") != string::npos) ? url.substr(url.find("?"),url.npos) : "";
-	rhs->uri.resource = url.substr(url.find_last_of("/") ,url.find("?") - url.find_last_of("/"));
+	UriInfo(*rhs,lhs,url);
 	if (!matchLocUri(request,lhs)){
 		rhs->Code.code = NotFound;
 		rhs->Code.reason = "Not Found";
@@ -301,8 +318,5 @@ void Responsehandler(Response *rhs, Request &request,Server& lhs){
 	}
 	else {
 		startserving(request,lhs,rhs);
-		// rhs->Code.code = Ok;
-		// rhs->Code.reason = "Ok";
-		// rhs->Code.HTTPv = "HTTP/1.1";
 	}
 }

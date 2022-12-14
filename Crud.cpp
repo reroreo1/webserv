@@ -1,6 +1,6 @@
 #include "Response.hpp"
 
-static std::string itoss(size_t size){
+std::string itoss(size_t size){
 	std::stringstream ss;
 	ss << size;
 	return (ss.str());
@@ -35,7 +35,7 @@ void addTHea(std::string &h, std::string toAdd, std::string check, bool del){
 	}
 }
 
-std::string makeHeader(Response &rhs){
+void makeHeader(Response &rhs){
 	std::string header;
 	addTHea(header, rhs.Code.HTTPv + " " + unts(rhs.Code.code) + " ",  rhs.Code.reason, true);
 	addTHea(header, "Content-Length: ",  rhs.contentLength, true);
@@ -43,8 +43,15 @@ std::string makeHeader(Response &rhs){
 	addTHea(header, "Location: ",  rhs.Location, true);
 	addTHea(header, "Connection", ": " + rhs.con, false);
 	header += "\r\n\r\n";
-	return (header);
+	
+	memmove(rhs.resBuf, header.data(), header.length());
+	rhs.bufin = header.length();
+	// rhs.bufin = 85;
+	// dprintf(2, "from makeHeader:\n rhs.bufin:%d\n\nheader.data:%s\n\n", rhs.bufin, header.c_str());
+	// return (header);
 } 
+
+// 
 bool	checkFileLoc(locations loc){
 	std::string check;
 	std::vector<std::string>::iterator index;
@@ -56,6 +63,8 @@ bool	checkFileLoc(locations loc){
 	}
 	return false;
 }
+
+
 // location without a backslash
 void startserving(Request &rhs,Server& server,Response* pons){
 	serverInfo ser = server.info;
@@ -99,7 +108,7 @@ void startserving(Request &rhs,Server& server,Response* pons){
 				if (checkFileLoc(loc)){
 					if (stat(pons->body.c_str(),&buff) == -1)
 						std::cerr << "say something.";
-						pons->Code.code = Ok;
+					pons->Code.code = Ok;
 					pons->Code.reason = "OK";
 					pons->Code.HTTPv = "HTTP/1.1";
 					pons->contentLength = itoss(buff.st_size);
@@ -117,7 +126,7 @@ void startserving(Request &rhs,Server& server,Response* pons){
 				pons->Code.code = Ok;
 				pons->Code.reason = "OK";
 				pons->Code.HTTPv = "HTTP/1.1";
-				pons->body = listDirectory(("." + loc.root).c_str(),loc.locationUri,rhs);
+				pons->body = listDirectory(("." + loc.root + pons->uri.resource).c_str(),loc.locationUri,rhs,pons->uri.resource);
 				pons->isBodyFile = false;
 				pons->contentLength = itoss(pons->body.size());
 				pons->contentType = pons->mime.at(".html");
@@ -133,7 +142,7 @@ void startserving(Request &rhs,Server& server,Response* pons){
 			if (stat(pons->body.c_str(),&buff) == -1)
 				std::cerr << "say something.";
 			pons->contentLength = itoss(buff.st_size);
-			pons->contentType = pons->mime.at(res.substr(res.find("."),std::string::npos));
+			pons->contentType = (res.find(".") != res.npos) ? pons->mime.at(res.substr(res.find("."),std::string::npos)) : "text/plain";
 			return ;
 		}
 		//still needs cgi

@@ -1,23 +1,18 @@
 server {
 	listen 5555;
-	
 	server_name localhost localhost.com;
 	error_page 503 504 /custem_50x.html;
-	client_max_bodysize 1024;
-	location /{
-		root /helperFile;
+	client_max_bodysize 1024000000;
+	location /hello/ {
+		root /helperFile/;
 		index index.html;
 		autoindex ;
 		accepted_methods GET POST DELETE;
 	}
-	location /hello {
-		root /helperFile;
-		index index.html papa.json dada.xml;
+	location /{
+		root /helperFile/;
 		autoindex ;
 		accepted_methods GET POST DELETE;
-	}
-	location /uploads {
-		root /uploads
 	}
 }
 server {
